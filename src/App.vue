@@ -1,8 +1,8 @@
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const intervalSec = ref(30)
-const durationMin = ref(10)
+const intervalSec = ref(10)
+const durationMin = ref(15)
 const running = ref(false)
 const elapsed = ref(0)
 const nextVibIn = ref(0)
@@ -12,6 +12,11 @@ let tickId = null
 let endTime = null
 let nextVibeTime = null
 let wakeLock = null
+const backgrounded = ref(false)
+
+function vibrate() {
+  navigator.vibrate([200, 100, 200, 100, 200])
+}
 
 async function acquireWakeLock() {
   if ('wakeLock' in navigator) {
@@ -28,6 +33,26 @@ function releaseWakeLock() {
   }
 }
 
+function onVisibilityChange() {
+  if (!running.value) return
+  if (document.visibilityState === 'hidden') {
+    backgrounded.value = true
+  } else {
+    backgrounded.value = false
+    acquireWakeLock()
+    if (Date.now() >= endTime) { stop(); return }
+    // catch up on any missed vibration while backgrounded
+    if (Date.now() >= nextVibeTime) {
+      vibrate()
+      const intervalMs = intervalSec.value * 1000
+      while (nextVibeTime <= Date.now()) nextVibeTime += intervalMs
+    }
+  }
+}
+
+onMounted(() => document.addEventListener('visibilitychange', onVisibilityChange))
+onUnmounted(() => document.removeEventListener('visibilitychange', onVisibilityChange))
+
 async function start() {
   const durationMs = durationMin.value * 60 * 1000
   const intervalMs = intervalSec.value * 1000
@@ -41,7 +66,7 @@ async function start() {
 
   intervalId = setInterval(() => {
     if (Date.now() >= endTime) return stop()
-    navigator.vibrate(300)
+    vibrate()
     nextVibeTime = Date.now() + intervalMs
   }, intervalMs)
 
@@ -66,6 +91,7 @@ function stop() {
 }
 
 onUnmounted(stop)
+
 
 function fmt(totalSec) {
   const m = String(Math.floor(totalSec / 60)).padStart(2, '0')
@@ -104,6 +130,8 @@ const totalFmt = computed(() => fmt(durationMin.value * 60))
       <p class="status running">Status: running <span class="dot">●</span></p>
       <p class="elapsed">Elapsed: {{ elapsedFmt }} / {{ totalFmt }}</p>
       <p class="next">Next vibrate in: {{ nextVibIn }}s</p>
+      <p v-if="backgrounded" class="warn">Keep app open — vibration paused in background</p>
+      <p v-else class="hint">Keep app open for vibrations to work</p>
     </template>
   </div>
 </template>
@@ -221,5 +249,22 @@ input[type=number]:focus {
   font-weight: 600;
   color: #a78bfa;
   text-align: center;
+}
+
+.hint {
+  font-size: .78rem;
+  color: #55556a;
+  text-align: center;
+}
+
+.warn {
+  font-size: .82rem;
+  font-weight: 600;
+  color: #f59e0b;
+  text-align: center;
+  background: #1c1507;
+  border: 1px solid #78350f;
+  border-radius: 8px;
+  padding: .45rem .75rem;
 }
 </style>

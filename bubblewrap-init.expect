@@ -1,0 +1,50 @@
+#!/usr/bin/expect -f
+set timeout 300
+
+spawn bubblewrap init --manifest https://pramod-shenkar.github.io/vibetimer/manifest.webmanifest
+
+# JDK install
+expect "install the JDK"
+send "\r"
+
+# Android SDK install
+expect "install the Android SDK"
+send "\r"
+
+# Terms and conditions
+expect "terms and conditions"
+send "y\r"
+
+# All manifest fields - just accept defaults with Enter
+# Loop: send Enter for every prompt until we hit signing key section
+set i 0
+while {$i < 20} {
+    expect {
+        "Package ID"    { send "com.pramod.vibetimer\r" }
+        "Key password"  { break }
+        "password"      { break }
+        -re {\?}        { send "\r" }
+        timeout         { break }
+        eof             { exit 0 }
+    }
+    incr i
+}
+
+# Signing key prompts
+expect {
+    "Key password"  {}
+    "password"      {}
+    timeout         { exit 0 }
+    eof             { exit 0 }
+}
+send "vibetimer123\r"
+
+expect {
+    "Keystore password" {}
+    "password"          {}
+    timeout             { exit 0 }
+    eof                 { exit 0 }
+}
+send "vibetimer123\r"
+
+expect eof

@@ -1,6 +1,13 @@
 version: '3'
 
 tasks:
+  default:
+    desc: Commit, push and deploy to GitHub Pages
+    cmds:
+      - task: git
+        vars: { MSG: '{{default "update" .MSG}}' }
+      - task: deploy
+
   install:
     desc: Install dependencies including gh-pages
     cmds:
@@ -25,3 +32,30 @@ tasks:
     cmds:
       - npm run build
       - npx gh-pages -d dist
+
+  apk-setup:
+    desc: Create container and install Java + Bubblewrap (one-time)
+    cmds:
+      - distrobox create --name android-builder --image ubuntu:22.04 || true
+      - distrobox enter --name android-builder -- sudo apt update
+      - distrobox enter --name android-builder -- sudo apt install -y openjdk-17-jdk nodejs npm
+      - distrobox enter --name android-builder -- sudo npm install -g @bubblewrap/cli
+      - echo "Setup done. Now run task apk-init"
+
+  apk-init:
+    desc: Init Bubblewrap project (run once, answers prompts automatically)
+    cmds:
+      - |
+        distrobox enter --name android-builder -- bash -c "
+          mkdir -p ~/vibetimer-twa &&
+          cp {{.ROOT_DIR}}/bubblewrap-init.expect ~/vibetimer-twa/ &&
+          cd ~/vibetimer-twa &&
+          chmod +x bubblewrap-init.expect &&
+          expect bubblewrap-init.expect
+        "
+
+  apk-build:
+    desc: Build the APK inside container
+    cmds:
+      - distrobox enter --name android-builder -- bash -c "cd ~/vibetimer-twa && bubblewrap build"
+      - echo "APK ready at ~/vibetimer-twa/app-release-signed.apk"
