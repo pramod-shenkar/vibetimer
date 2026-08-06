@@ -9,6 +9,11 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        navigateFallback: '/vibetimer/index.html',
+        navigateFallbackDenylist: [/^\/api/],
+      },
       manifest: {
         name: 'Session Vibe Timer',
         short_name: 'VibeTimer',
@@ -22,6 +27,16 @@ export default defineConfig({
         dir: 'ltr',
         orientation: 'portrait',
         categories: ['utilities', 'productivity'],
+        display_override: ['standalone', 'minimal-ui'],
+        shortcuts: [
+          {
+            name: 'Start Timer',
+            short_name: 'Start',
+            description: 'Open Session Vibe Timer',
+            url: '/vibetimer/',
+            icons: [{ src: '/vibetimer/icon-192.png', sizes: '192x192' }],
+          },
+        ],
         icons: [
           { src: '/vibetimer/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/vibetimer/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

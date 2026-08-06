@@ -1,0 +1,27 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install dependencies including gh-pages
+    cmds:
+      - npm install --save-dev gh-pages
+
+  build:
+    desc: Build the app
+    cmds:
+      - npm run build
+
+  git:
+    desc: Stage, commit and push all changes
+    cmds:
+      - git add -A
+      - git commit -m "{{.MSG}}"
+      - git push
+    vars:
+      MSG: '{{default "update" .MSG}}'
+
+  deploy:
+    desc: Build and deploy to GitHub Pages
+    cmds:
+      - npm run build
+      - npx gh-pages -d dist
