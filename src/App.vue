@@ -3,9 +3,16 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const intervalSec = ref(10)
 const durationMin = ref(15)
+const vibeMode = ref('triple')
 const running = ref(false)
 const elapsed = ref(0)
 const nextVibIn = ref(0)
+
+const vibeModes = [
+  { value: 'single', label: 'Single', pattern: [300] },
+  { value: 'double', label: 'Double', pattern: [200, 100, 200] },
+  { value: 'triple', label: 'Triple', pattern: [200, 100, 200, 100, 200] },
+]
 
 let intervalId = null
 let tickId = null
@@ -15,7 +22,8 @@ let wakeLock = null
 const backgrounded = ref(false)
 
 function vibrate() {
-  navigator.vibrate([200, 100, 200, 100, 200])
+  const mode = vibeModes.find(m => m.value === vibeMode.value)
+  navigator.vibrate(mode.pattern)
 }
 
 async function acquireWakeLock() {
@@ -108,6 +116,18 @@ const totalFmt = computed(() => fmt(durationMin.value * 60))
     <h1 class="title">Session Vibe Timer</h1>
 
     <template v-if="!running">
+      <div class="field">
+        <label>Vibration Mode</label>
+        <div class="vibe-modes">
+          <button
+            v-for="m in vibeModes"
+            :key="m.value"
+            class="mode-btn"
+            :class="{ active: vibeMode === m.value }"
+            @click="vibeMode = m.value"
+          >{{ m.label }}</button>
+        </div>
+      </div>
       <div class="field">
         <label>Interval (sec)</label>
         <input type="number" v-model.number="intervalSec" min="1" max="3600" />
@@ -249,6 +269,30 @@ input[type=number]:focus {
   font-weight: 600;
   color: #a78bfa;
   text-align: center;
+}
+
+.vibe-modes {
+  display: flex;
+  gap: .5rem;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: .6rem;
+  background: #0d0d14;
+  border: 1px solid #2e2e42;
+  border-radius: 10px;
+  color: #8888aa;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.mode-btn.active {
+  background: #2a1a5e;
+  border-color: #7c3aed;
+  color: #a78bfa;
 }
 
 .hint {
