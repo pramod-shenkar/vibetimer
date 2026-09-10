@@ -26,6 +26,11 @@ coverage
 
 *.tsbuildinfo
 
+# Media / build artifacts
+*.png
+!public/*.png
+*.apk
+
 .eslintcache
 
 # Cypress
