@@ -1,0 +1,1 @@
+(function(){let e=null;self.onmessage=t=>{if(t.data.type===`start`){let{intervalMs:n,endTime:r}=t.data;clearInterval(e),e=setInterval(()=>{Date.now()>=r?(clearInterval(e),self.postMessage({type:`done`})):self.postMessage({type:`vibrate`})},n)}else t.data.type===`stop`&&(clearInterval(e),e=null)}})();
