@@ -14,16 +14,51 @@ const vibeModes = [
   { value: 'triple', label: 'Triple', pattern: [200, 100, 200, 100, 200] },
 ]
 
-let intervalId = null
 let tickId = null
 let endTime = null
+let startTime = null
 let nextVibeTime = null
 let wakeLock = null
+let audioCtx = null
+let silentNode = null
 const backgrounded = ref(false)
+
+const worker = new Worker(new URL('./vibe-worker.js', import.meta.url), { type: 'module' })
+
+worker.onmessage = (e) => {
+  if (e.data.type === 'vibrate') vibrate()
+  if (e.data.type === 'done') stop()
+}
 
 function vibrate() {
   const mode = vibeModes.find(m => m.value === vibeMode.value)
   navigator.vibrate(mode.pattern)
+}
+
+// Keeps audio context alive to reduce browser throttling when backgrounded
+function startSilentAudio() {
+  try {
+    audioCtx = new AudioContext()
+    const scheduleSilent = () => {
+      if (!running.value) return
+      const buf = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate)
+      silentNode = audioCtx.createBufferSource()
+      silentNode.buffer = buf
+      silentNode.connect(audioCtx.destination)
+      silentNode.onended = scheduleSilent
+      silentNode.start()
+    }
+    scheduleSilent()
+  } catch (_) {}
+}
+
+function stopSilentAudio() {
+  try {
+    silentNode?.stop()
+    audioCtx?.close()
+  } catch (_) {}
+  silentNode = null
+  audioCtx = null
 }
 
 async function acquireWakeLock() {
@@ -49,7 +84,6 @@ function onVisibilityChange() {
     backgrounded.value = false
     acquireWakeLock()
     if (Date.now() >= endTime) { stop(); return }
-    // catch up on any missed vibration while backgrounded
     if (Date.now() >= nextVibeTime) {
       vibrate()
       const intervalMs = intervalSec.value * 1000
@@ -64,38 +98,37 @@ onUnmounted(() => document.removeEventListener('visibilitychange', onVisibilityC
 async function start() {
   const durationMs = durationMin.value * 60 * 1000
   const intervalMs = intervalSec.value * 1000
-  endTime = Date.now() + durationMs
-  nextVibeTime = Date.now() + intervalMs
+  startTime = Date.now()
+  endTime = startTime + durationMs
+  nextVibeTime = startTime + intervalMs
   running.value = true
   elapsed.value = 0
   nextVibIn.value = intervalSec.value
 
   await acquireWakeLock()
+  startSilentAudio()
 
-  intervalId = setInterval(() => {
-    if (Date.now() >= endTime) return stop()
-    vibrate()
-    nextVibeTime = Date.now() + intervalMs
-  }, intervalMs)
+  worker.postMessage({ type: 'start', intervalMs, endTime })
 
   tickId = setInterval(() => {
-    elapsed.value = Math.floor((Date.now() - (endTime - durationMs)) / 1000)
+    elapsed.value = Math.floor((Date.now() - startTime) / 1000)
     nextVibIn.value = Math.max(0, Math.ceil((nextVibeTime - Date.now()) / 1000))
     if (Date.now() >= endTime) stop()
   }, 500)
 }
 
 function stop() {
-  clearInterval(intervalId)
+  worker.postMessage({ type: 'stop' })
   clearInterval(tickId)
-  intervalId = null
   tickId = null
   endTime = null
+  startTime = null
   nextVibeTime = null
   running.value = false
   elapsed.value = 0
   nextVibIn.value = 0
   releaseWakeLock()
+  stopSilentAudio()
 }
 
 onUnmounted(stop)
@@ -150,8 +183,8 @@ const totalFmt = computed(() => fmt(durationMin.value * 60))
       <p class="status running">Status: running <span class="dot">●</span></p>
       <p class="elapsed">Elapsed: {{ elapsedFmt }} / {{ totalFmt }}</p>
       <p class="next">Next vibrate in: {{ nextVibIn }}s</p>
-      <p v-if="backgrounded" class="warn">Keep app open — vibration paused in background</p>
-      <p v-else class="hint">Keep app open for vibrations to work</p>
+      <p v-if="backgrounded" class="warn">Screen locked — vibration resumes when unlocked</p>
+      <p v-else class="hint">Screen stays on while running</p>
     </template>
   </div>
 </template>
