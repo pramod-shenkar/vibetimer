@@ -4,7 +4,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 const intervalSec = ref(10)
 const durationMin = ref(15)
 const vibeMode = ref('triple')
-const tingEnabled = ref(true)
+const tingEnabled = ref(false)
 const running = ref(false)
 const elapsed = ref(0)
 const nextVibIn = ref(0)
@@ -228,8 +228,8 @@ const totalFmt = computed(() => fmt(durationMin.value * 60))
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: #0d0d0f;
-  color: #e2e2e8;
+  background: #0a0a0a;
+  color: #c8c8c8;
   font-family: 'Segoe UI', system-ui, sans-serif;
   min-height: 100dvh;
   display: flex;
@@ -241,21 +241,21 @@ body {
 <style scoped>
 .app {
   width: min(420px, 92vw);
-  background: #16161d;
-  border: 1px solid #2a2a38;
+  background: #111111;
+  border: 1px solid #1e1e1e;
   border-radius: 20px;
   padding: 2.5rem 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.4rem;
-  box-shadow: 0 8px 40px rgba(0,0,0,.6);
+  box-shadow: 0 8px 40px rgba(0,0,0,.8);
 }
 
 .title {
   font-size: 1.4rem;
   font-weight: 600;
   text-align: center;
-  color: #a78bfa;
+  color: #c9a84c;
   letter-spacing: .02em;
 }
 
@@ -267,30 +267,30 @@ body {
 
 label {
   font-size: .85rem;
-  color: #8888aa;
+  color: #525252;
   font-weight: 500;
 }
 
 input[type=number] {
   width: 100%;
   padding: .75rem 1rem;
-  background: #0d0d14;
-  border: 1px solid #2e2e42;
+  background: #0a0a0a;
+  border: 1px solid #222222;
   border-radius: 10px;
-  color: #e2e2e8;
+  color: #c8c8c8;
   font-size: 1.1rem;
   outline: none;
   transition: border-color .2s;
 }
 
 input[type=number]:focus {
-  border-color: #7c3aed;
+  border-color: #9a6e20;
 }
 
 .btn {
   width: 100%;
   padding: .9rem;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 12px;
   font-size: 1.05rem;
   font-weight: 700;
@@ -302,27 +302,29 @@ input[type=number]:focus {
 .btn:active { transform: scale(.97); opacity: .85; }
 
 .btn-start {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  color: #fff;
+  background: #160f00;
+  border-color: #9a6e20;
+  color: #c9a84c;
 }
 
 .btn-stop {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  color: #fff;
+  background: #1a0404;
+  border-color: #7f1d1d;
+  color: #f87171;
 }
 
 .locked-info {
   display: flex;
   justify-content: space-between;
   font-size: .9rem;
-  color: #8888aa;
-  background: #0d0d14;
+  color: #525252;
+  background: #0a0a0a;
   border-radius: 10px;
   padding: .6rem 1rem;
 }
 
-.status { font-size: .95rem; color: #8888aa; }
-.status.running { color: #a3e635; }
+.status { font-size: .95rem; color: #525252; }
+.status.running { color: #4ade80; }
 .dot { animation: pulse 1.2s ease-in-out infinite; }
 
 @keyframes pulse {
@@ -330,12 +332,12 @@ input[type=number]:focus {
   50% { opacity: .3; }
 }
 
-.elapsed { font-size: 1rem; color: #c4c4d4; font-variant-numeric: tabular-nums; }
+.elapsed { font-size: 1rem; color: #888888; font-variant-numeric: tabular-nums; }
 
 .next {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #a78bfa;
+  color: #c9a84c;
   text-align: center;
 }
 
@@ -347,10 +349,10 @@ input[type=number]:focus {
 .mode-btn {
   flex: 1;
   padding: .6rem;
-  background: #0d0d14;
-  border: 1px solid #2e2e42;
+  background: #0a0a0a;
+  border: 1px solid #222222;
   border-radius: 10px;
-  color: #8888aa;
+  color: #525252;
   font-size: .95rem;
   font-weight: 600;
   cursor: pointer;
@@ -358,18 +360,18 @@ input[type=number]:focus {
 }
 
 .mode-btn.active {
-  background: #2a1a5e;
-  border-color: #7c3aed;
-  color: #a78bfa;
+  background: #160f00;
+  border-color: #9a6e20;
+  color: #c9a84c;
 }
 
 .sound-btn {
   width: 100%;
   padding: .6rem 1rem;
-  background: #0d0d14;
-  border: 1px solid #2e2e42;
+  background: #0a0a0a;
+  border: 1px solid #222222;
   border-radius: 10px;
-  color: #55556a;
+  color: #404040;
   font-size: .95rem;
   font-weight: 600;
   cursor: pointer;
@@ -378,23 +380,23 @@ input[type=number]:focus {
 }
 
 .sound-btn.active {
-  background: #0d1f0d;
-  border-color: #16a34a;
+  background: #051205;
+  border-color: #166534;
   color: #4ade80;
 }
 
 .hint {
   font-size: .78rem;
-  color: #55556a;
+  color: #333333;
   text-align: center;
 }
 
 .warn {
   font-size: .82rem;
   font-weight: 600;
-  color: #f59e0b;
+  color: #d97706;
   text-align: center;
-  background: #1c1507;
+  background: #110b00;
   border: 1px solid #78350f;
   border-radius: 8px;
   padding: .45rem .75rem;
