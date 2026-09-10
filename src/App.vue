@@ -4,6 +4,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 const intervalSec = ref(10)
 const durationMin = ref(15)
 const vibeMode = ref('triple')
+const tingEnabled = ref(true)
 const running = ref(false)
 const elapsed = ref(0)
 const nextVibIn = ref(0)
@@ -26,13 +27,37 @@ const backgrounded = ref(false)
 const worker = new Worker(new URL('./vibe-worker.js', import.meta.url), { type: 'module' })
 
 worker.onmessage = (e) => {
-  if (e.data.type === 'vibrate') vibrate()
+  if (e.data.type === 'vibrate') {
+    vibrate()
+    playTing()
+    nextVibeTime = Date.now() + intervalSec.value * 1000
+  }
   if (e.data.type === 'done') stop()
 }
 
 function vibrate() {
   const mode = vibeModes.find(m => m.value === vibeMode.value)
   navigator.vibrate(mode.pattern)
+}
+
+function playBell(when) {
+  const osc = audioCtx.createOscillator()
+  const gain = audioCtx.createGain()
+  osc.connect(gain)
+  gain.connect(audioCtx.destination)
+  osc.type = 'sine'
+  osc.frequency.value = 1047
+  gain.gain.setValueAtTime(1, when)
+  gain.gain.exponentialRampToValueAtTime(0.001, when + 0.9)
+  osc.start(when)
+  osc.stop(when + 0.9)
+}
+
+function playTing() {
+  if (!tingEnabled.value || !audioCtx) return
+  const now = audioCtx.currentTime
+  playBell(now)
+  playBell(now + 0.28)
 }
 
 // Keeps audio context alive to reduce browser throttling when backgrounded
@@ -150,6 +175,13 @@ const totalFmt = computed(() => fmt(durationMin.value * 60))
 
     <template v-if="!running">
       <div class="field">
+        <label>Sound</label>
+        <button class="sound-btn" :class="{ active: tingEnabled }" @click="tingEnabled = !tingEnabled">
+          Ting-Ting &nbsp; {{ tingEnabled ? 'ON' : 'OFF' }}
+        </button>
+      </div>
+
+      <div class="field">
         <label>Vibration Mode</label>
         <div class="vibe-modes">
           <button
@@ -183,6 +215,9 @@ const totalFmt = computed(() => fmt(durationMin.value * 60))
       <p class="status running">Status: running <span class="dot">●</span></p>
       <p class="elapsed">Elapsed: {{ elapsedFmt }} / {{ totalFmt }}</p>
       <p class="next">Next vibrate in: {{ nextVibIn }}s</p>
+      <button class="sound-btn" :class="{ active: tingEnabled }" @click="tingEnabled = !tingEnabled">
+        Ting-Ting &nbsp; {{ tingEnabled ? 'ON' : 'OFF' }}
+      </button>
       <p v-if="backgrounded" class="warn">Screen locked — vibration resumes when unlocked</p>
       <p v-else class="hint">Screen stays on while running</p>
     </template>
@@ -326,6 +361,26 @@ input[type=number]:focus {
   background: #2a1a5e;
   border-color: #7c3aed;
   color: #a78bfa;
+}
+
+.sound-btn {
+  width: 100%;
+  padding: .6rem 1rem;
+  background: #0d0d14;
+  border: 1px solid #2e2e42;
+  border-radius: 10px;
+  color: #55556a;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: .03em;
+}
+
+.sound-btn.active {
+  background: #0d1f0d;
+  border-color: #16a34a;
+  color: #4ade80;
 }
 
 .hint {
